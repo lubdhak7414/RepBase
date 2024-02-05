@@ -1,0 +1,30 @@
+# PHP
+*.log
+*.cache
+/vendor/
+composer.lock
+
+# Environment / secrets
+.env
+config.local.php
+*.local.php
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.DS_Store
+
+# Media / uploads
+/uploads/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.mp4
+*.zip
+*.tar.gz
+
+# PHP sessions
+/sessions/
