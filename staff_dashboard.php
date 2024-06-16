@@ -19,7 +19,9 @@ page_nav();
 ?>
 <div class="container">
   <?php flash_html(); ?>
-  <h2 class="mb-4">Staff Dashboard</h2>
+  <h2 class="mb-4">Staff Dashboard
+    <small class="text-muted fs-6 ms-2">Welcome, <?= e($staff['name']) ?></small>
+  </h2>
 
   <div class="row g-4 mb-4">
     <div class="col-sm-6 col-md-3">
