@@ -18,19 +18,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$name || !$email || !$pass) {
         $error = 'Name, email and password are required.';
     } else {
-        // NAIVE: md5 hashing, direct string interpolation
-        $hashed = md5($pass);
+        $hashed = password_hash($pass, PASSWORD_BCRYPT);
         $db = db();
-        $check = $db->query("SELECT Member_id FROM member WHERE Email = '$email'");
-        if ($check->rowCount() > 0) {
+        $chk = $db->prepare("SELECT Member_id FROM member WHERE Email = ?");
+        $chk->execute([$email]);
+        if ($chk->rowCount() > 0) {
             $error = 'An account with that email already exists.';
         } else {
-            $db->query("INSERT INTO member (Name, Email, Password, Phone, JoinDate)
-                        VALUES ('$name', '$email', '$hashed', '$phone', CURDATE())");
+            $stmt = $db->prepare("INSERT INTO member (Name, Email, Password, Phone, JoinDate) VALUES (?, ?, ?, ?, CURDATE())");
+            $stmt->execute([$name, $email, $hashed, $phone]);
             $newId = (int)$db->lastInsertId();
             // Assign default Basic plan
-            $db->query("INSERT INTO membership (Member_id, Plan_id, StartDate, EndDate, Active)
-                        VALUES ($newId, 1, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 30 DAY), 1)");
+            $ms = $db->prepare("INSERT INTO membership (Member_id, Plan_id, StartDate, EndDate, Active) VALUES (?, 1, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 30 DAY), 1)");
+            $ms->execute([$newId]);
             flash_set('success', 'Account created! Please log in.');
             header('Location: login.php');
             exit;

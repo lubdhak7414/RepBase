@@ -116,23 +116,22 @@ INSERT INTO trainer (Name, Specialty) VALUES
     ('Danny Okonkwo',  'HIIT & Cardio'),
     ('Leila Navarro',  'Pilates & Core');
 
--- Members (passwords are bcrypt of "member123" — will be updated in commit #17)
--- Temporary md5 placeholder for naive era; real bcrypt applied at hardening commit
+-- Members (passwords are bcrypt of "member123")
 INSERT INTO member (Name, Email, Password, Phone, JoinDate) VALUES
-    ('Alice Thornton',  'alice@example.com',   '$2y$12$0dUXclsJj.EpGo7pE7NDYO9UpM7FVGgBWzlbUJLlSKrGbqtfXr0nO', '555-0101', '2024-02-10'),
-    ('Ben Castillo',    'ben@example.com',     '$2y$12$0dUXclsJj.EpGo7pE7NDYO9UpM7FVGgBWzlbUJLlSKrGbqtfXr0nO', '555-0102', '2024-02-15'),
-    ('Clara Demir',     'clara@example.com',   '$2y$12$0dUXclsJj.EpGo7pE7NDYO9UpM7FVGgBWzlbUJLlSKrGbqtfXr0nO', '555-0103', '2024-03-01'),
-    ('David Park',      'david@example.com',   '$2y$12$0dUXclsJj.EpGo7pE7NDYO9UpM7FVGgBWzlbUJLlSKrGbqtfXr0nO', '555-0104', '2024-03-10'),
-    ('Emeka Osei',      'emeka@example.com',   '$2y$12$0dUXclsJj.EpGo7pE7NDYO9UpM7FVGgBWzlbUJLlSKrGbqtfXr0nO', '555-0105', '2024-04-01');
+    ('Alice Thornton',  'alice@example.com',   '$2y$12$qsAcYWUK33ij15uphmnNp.4K35kNI8LCNnzKh4hFMf1fVEint6hjq', '555-0101', '2024-02-10'),
+    ('Ben Castillo',    'ben@example.com',     '$2y$12$qsAcYWUK33ij15uphmnNp.4K35kNI8LCNnzKh4hFMf1fVEint6hjq', '555-0102', '2024-02-15'),
+    ('Clara Demir',     'clara@example.com',   '$2y$12$qsAcYWUK33ij15uphmnNp.4K35kNI8LCNnzKh4hFMf1fVEint6hjq', '555-0103', '2024-03-01'),
+    ('David Park',      'david@example.com',   '$2y$12$qsAcYWUK33ij15uphmnNp.4K35kNI8LCNnzKh4hFMf1fVEint6hjq', '555-0104', '2024-03-10'),
+    ('Emeka Osei',      'emeka@example.com',   '$2y$12$qsAcYWUK33ij15uphmnNp.4K35kNI8LCNnzKh4hFMf1fVEint6hjq', '555-0105', '2024-04-01');
 
--- Staff (admin password: "admin2024", trainer password: "trainer2024")
--- bcrypt hashes generated with password_hash($pw, PASSWORD_BCRYPT, ['cost'=>12])
+-- Staff (admin password: "admin123", trainer password: "trainer123")
+-- bcrypt hashes generated with password_hash($pw, PASSWORD_BCRYPT)
 INSERT INTO staff (Username, Password, Role) VALUES
-    ('admin',        '$2y$12$5aDVuoTMO8nWRPGXSmQ7GOAbTiQzVkwXYNVT8s3iiO0MnQmm5Yzda', 'admin'),
-    ('marcus.webb',  '$2y$12$Oyk4k7YUXTrjrBnvHfN.dOhpQfJGpmDnlIfAXCHHqnvTQ7VoRXNWW', 'trainer'),
-    ('priya.sharma', '$2y$12$Oyk4k7YUXTrjrBnvHfN.dOhpQfJGpmDnlIfAXCHHqnvTQ7VoRXNWW', 'trainer'),
-    ('danny.ok',     '$2y$12$Oyk4k7YUXTrjrBnvHfN.dOhpQfJGpmDnlIfAXCHHqnvTQ7VoRXNWW', 'trainer'),
-    ('leila.nav',    '$2y$12$Oyk4k7YUXTrjrBnvHfN.dOhpQfJGpmDnlIfAXCHHqnvTQ7VoRXNWW', 'trainer');
+    ('admin',        '$2y$12$Dn5Akp0rMV2eaJF5bxGBN.MN8WWDGZ39HJ.29.kiTinav6PxJrQBu', 'admin'),
+    ('marcus.webb',  '$2y$12$Jh2Cy0idZn7H3cmcaDN1ne6UdWnZ5iibaaN/7hL1EbQJaGGVRpr/i', 'trainer'),
+    ('priya.sharma', '$2y$12$Jh2Cy0idZn7H3cmcaDN1ne6UdWnZ5iibaaN/7hL1EbQJaGGVRpr/i', 'trainer'),
+    ('danny.ok',     '$2y$12$Jh2Cy0idZn7H3cmcaDN1ne6UdWnZ5iibaaN/7hL1EbQJaGGVRpr/i', 'trainer'),
+    ('leila.nav',    '$2y$12$Jh2Cy0idZn7H3cmcaDN1ne6UdWnZ5iibaaN/7hL1EbQJaGGVRpr/i', 'trainer');
 
 -- Memberships
 INSERT INTO membership (Member_id, Plan_id, StartDate, EndDate, Active) VALUES

@@ -12,12 +12,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $pass     = $_POST['password'] ?? '';
 
-    // NAIVE: md5 comparison, plain string query
-    $hashed = md5($pass);
-    $db = db();
-    $row = $db->query("SELECT * FROM staff WHERE Username = '$username' AND Password = '$hashed'")->fetch();
+    $db   = db();
+    $stmt = $db->prepare("SELECT * FROM staff WHERE Username = ?");
+    $stmt->execute([$username]);
+    $row = $stmt->fetch();
 
-    if ($row) {
+    if ($row && password_verify($pass, $row['Password'])) {
         $_SESSION['staff_id']       = $row['Staff_id'];
         $_SESSION['staff_username'] = $row['Username'];
         $_SESSION['staff_role']     = $row['Role'];
