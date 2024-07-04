@@ -14,13 +14,14 @@ if (!$classId) {
     exit;
 }
 
-// NAIVE: direct string interpolation
-$class = $db->query("
+$stmt = $db->prepare("
     SELECT c.*, t.Name AS TrainerName
     FROM class c
     JOIN trainer t ON t.Trainer_id = c.Trainer_id
-    WHERE c.Class_id = $classId
-")->fetch();
+    WHERE c.Class_id = ?
+");
+$stmt->execute([$classId]);
+$class = $stmt->fetch();
 
 if (!$class) {
     flash_set('error', 'Class not found.');
@@ -29,15 +30,13 @@ if (!$class) {
 }
 
 // Check already booked
-$existing = $db->query("
-    SELECT Status FROM booking
-    WHERE Class_id = $classId AND Member_id = $mid
-")->fetch();
+$stmt = $db->prepare("SELECT Status FROM booking WHERE Class_id = ? AND Member_id = ?");
+$stmt->execute([$classId, $mid]);
+$existing = $stmt->fetch();
 
-$bookedCount = (int)$db->query("
-    SELECT COUNT(*) FROM booking
-    WHERE Class_id = $classId AND Status = 'booked'
-")->fetchColumn();
+$stmt = $db->prepare("SELECT COUNT(*) FROM booking WHERE Class_id = ? AND Status = 'booked'");
+$stmt->execute([$classId]);
+$bookedCount = (int)$stmt->fetchColumn();
 
 $capacity  = (int)$class['Capacity'];
 $remaining = $capacity - $bookedCount;
@@ -46,8 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($existing) {
         flash_set('error', 'You already have a booking for this class.');
     } elseif ($remaining > 0) {
-        $db->query("INSERT INTO booking (Class_id, Member_id, BookedAt, Status)
-                    VALUES ($classId, $mid, NOW(), 'booked')");
+        $ins = $db->prepare("INSERT INTO booking (Class_id, Member_id, BookedAt, Status) VALUES (?, ?, NOW(), 'booked')");
+        $ins->execute([$classId, $mid]);
         flash_set('success', 'Class booked successfully!');
         header('Location: my_account.php');
         exit;

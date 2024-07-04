@@ -7,8 +7,7 @@ require_once __DIR__ . '/helpers.php';
 $staff = require_staff('admin');
 $db    = db();
 
-// Memberships expiring in the next 7 days
-// NAIVE: string query
+// Memberships expiring in the next 7 days (no user input — safe without params)
 $expiring = $db->query("
     SELECT m.Membership_id, m.EndDate, m.Active,
            mem.Member_id, mem.Name, mem.Email, mem.Phone,
@@ -21,8 +20,7 @@ $expiring = $db->query("
     ORDER BY m.EndDate ASC
 ")->fetchAll();
 
-// Revenue per plan
-// NAIVE: string query
+// Revenue per plan (no user input)
 $revenue = $db->query("
     SELECT p.Plan_id, p.Name AS PlanName,
            COUNT(pay.Payment_id) AS TxCount,

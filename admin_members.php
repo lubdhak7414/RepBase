@@ -7,15 +7,12 @@ require_once __DIR__ . '/helpers.php';
 $staff = require_staff('admin');
 $db    = db();
 
-$error   = '';
-$success = '';
-
 // Handle status toggle (deactivate / reactivate membership)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_membership'])) {
-    $msid      = $_POST['membership_id'];
+    $msid      = (int)$_POST['membership_id'];
     $newActive = (int)$_POST['new_active'];
-    // NAIVE: direct string interpolation
-    $db->query("UPDATE membership SET Active = $newActive WHERE Membership_id = $msid");
+    $stmt = $db->prepare("UPDATE membership SET Active = ? WHERE Membership_id = ?");
+    $stmt->execute([$newActive, $msid]);
     flash_set('success', 'Membership status updated.');
     header('Location: admin_members.php');
     exit;
@@ -23,19 +20,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_membership']))
 
 // Handle member detail edit
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_member'])) {
-    $id    = $_POST['member_id'];
+    $id    = (int)$_POST['member_id'];
     $name  = $_POST['name'];
     $email = $_POST['email'];
     $phone = $_POST['phone'];
-    // NAIVE: direct string interpolation
-    $db->query("UPDATE member SET Name = '$name', Email = '$email', Phone = '$phone' WHERE Member_id = $id");
+    $stmt = $db->prepare("UPDATE member SET Name = ?, Email = ?, Phone = ? WHERE Member_id = ?");
+    $stmt->execute([$name, $email, $phone, $id]);
     flash_set('success', 'Member details updated.');
     header('Location: admin_members.php');
     exit;
 }
 
 // Fetch all members with their active membership plan
-// NAIVE: string query
 $members = $db->query("
     SELECT m.Member_id, m.Name, m.Email, m.Phone, m.JoinDate,
            ms.Membership_id, ms.Active AS MsActive, ms.EndDate,
@@ -50,7 +46,9 @@ $members = $db->query("
 $editId = (int)($_GET['edit'] ?? 0);
 $editMember = null;
 if ($editId) {
-    $editMember = $db->query("SELECT * FROM member WHERE Member_id = $editId")->fetch();
+    $stmt = $db->prepare("SELECT * FROM member WHERE Member_id = ?");
+    $stmt->execute([$editId]);
+    $editMember = $stmt->fetch();
 }
 
 page_head('Manage Members');

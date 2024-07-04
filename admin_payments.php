@@ -9,19 +9,19 @@ $db    = db();
 
 // Handle record payment
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['record_payment'])) {
-    $member_id    = $_POST['member_id'];
-    $amount       = $_POST['amount'];
-    $method       = $_POST['method'];
+    $member_id = (int)$_POST['member_id'];
+    $amount    = $_POST['amount'];
+    $method    = $_POST['method'];
 
     // Get the active membership_id for this member
-    // NAIVE: direct string interpolation
-    $ms = $db->query("SELECT Membership_id FROM membership WHERE Member_id = $member_id AND Active = 1 ORDER BY EndDate DESC LIMIT 1")->fetch();
+    $stmt = $db->prepare("SELECT Membership_id FROM membership WHERE Member_id = ? AND Active = 1 ORDER BY EndDate DESC LIMIT 1");
+    $stmt->execute([$member_id]);
+    $ms = $stmt->fetch();
 
     if ($ms) {
-        $membership_id = $ms['Membership_id'];
-        // NAIVE: direct string interpolation
-        $db->query("INSERT INTO payment (Member_id, Membership_id, Amount, PaidAt, Method)
-                    VALUES ($member_id, $membership_id, $amount, NOW(), '$method')");
+        $membership_id = (int)$ms['Membership_id'];
+        $ins = $db->prepare("INSERT INTO payment (Member_id, Membership_id, Amount, PaidAt, Method) VALUES (?, ?, ?, NOW(), ?)");
+        $ins->execute([$member_id, $membership_id, $amount, $method]);
         flash_set('success', 'Payment recorded successfully.');
     } else {
         flash_set('error', 'No active membership found for this member.');
@@ -30,11 +30,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['record_payment'])) {
     exit;
 }
 
-// Fetch all members for the select dropdown
+// Fetch all members for the select dropdown (no user input)
 $members = $db->query("SELECT Member_id, Name, Email FROM member ORDER BY Name ASC")->fetchAll();
 
 // Fetch recent payments with member and plan info
-// NAIVE: string query
 $payments = $db->query("
     SELECT pay.Payment_id, pay.Amount, pay.PaidAt, pay.Method,
            mem.Name AS MemberName, mem.Email,

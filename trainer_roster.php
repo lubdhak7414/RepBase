@@ -9,38 +9,33 @@ $db      = db();
 $staffId = $staff['id'];
 $role    = $staff['role'];
 
-// NAIVE: direct string queries
-// For trainers, show only their classes; admin sees all
 if ($role === 'trainer') {
     // Link staff username to trainer name
-    $trainer = $db->query("
-        SELECT t.* FROM trainer t
-        JOIN staff s ON s.Username = REPLACE(LOWER(t.Name), ' ', '.')
-        WHERE s.Staff_id = $staffId
-        LIMIT 1
-    ")->fetch();
+    $stmt = $db->prepare("SELECT Username FROM staff WHERE Staff_id = ?");
+    $stmt->execute([$staffId]);
+    $uname = $stmt->fetchColumn();
 
-    if (!$trainer) {
-        // Fallback: try partial match
-        $uname = $db->query("SELECT Username FROM staff WHERE Staff_id = $staffId")->fetchColumn();
-        $trainer = $db->query("
-            SELECT * FROM trainer
-            WHERE LOWER(REPLACE(Name, ' ', '.')) = LOWER('$uname')
-            LIMIT 1
-        ")->fetch();
-    }
+    $stmt = $db->prepare("
+        SELECT * FROM trainer
+        WHERE LOWER(REPLACE(Name, ' ', '.')) = LOWER(?)
+        LIMIT 1
+    ");
+    $stmt->execute([$uname]);
+    $trainer = $stmt->fetch();
 
     if ($trainer) {
         $tid = (int)$trainer['Trainer_id'];
-        $classes = $db->query("
+        $stmt = $db->prepare("
             SELECT c.*,
                    COUNT(b.Booking_id) AS BookedCount
             FROM class c
             LEFT JOIN booking b ON b.Class_id = c.Class_id AND b.Status = 'booked'
-            WHERE c.Trainer_id = $tid
+            WHERE c.Trainer_id = ?
             GROUP BY c.Class_id
             ORDER BY c.StartsAt ASC
-        ")->fetchAll();
+        ");
+        $stmt->execute([$tid]);
+        $classes = $stmt->fetchAll();
     } else {
         $classes = [];
     }

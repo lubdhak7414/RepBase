@@ -14,12 +14,13 @@ if (!$classId) {
     exit;
 }
 
-// NAIVE: direct string interpolation
-$class = $db->query("
+$stmt = $db->prepare("
     SELECT c.*, t.Name AS TrainerName
     FROM class c JOIN trainer t ON t.Trainer_id = c.Trainer_id
-    WHERE c.Class_id = $classId
-")->fetch();
+    WHERE c.Class_id = ?
+");
+$stmt->execute([$classId]);
+$class = $stmt->fetch();
 
 if (!$class) {
     flash_set('error', 'Class not found.');
@@ -27,8 +28,13 @@ if (!$class) {
     exit;
 }
 
-$existing = $db->query("SELECT Status FROM booking WHERE Class_id = $classId AND Member_id = $mid")->fetch();
-$bookedCount = (int)$db->query("SELECT COUNT(*) FROM booking WHERE Class_id = $classId AND Status = 'booked'")->fetchColumn();
+$stmt = $db->prepare("SELECT Status FROM booking WHERE Class_id = ? AND Member_id = ?");
+$stmt->execute([$classId, $mid]);
+$existing = $stmt->fetch();
+
+$stmt = $db->prepare("SELECT COUNT(*) FROM booking WHERE Class_id = ? AND Status = 'booked'");
+$stmt->execute([$classId]);
+$bookedCount = (int)$stmt->fetchColumn();
 $remaining = (int)$class['Capacity'] - $bookedCount;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -36,10 +42,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         flash_set('error', 'You already have a booking for this class (status: ' . $existing['Status'] . ').');
     } elseif ($remaining > 0) {
         // Class opened up — book directly
-        $db->query("INSERT INTO booking (Class_id, Member_id, BookedAt, Status) VALUES ($classId, $mid, NOW(), 'booked')");
+        $ins = $db->prepare("INSERT INTO booking (Class_id, Member_id, BookedAt, Status) VALUES (?, ?, NOW(), 'booked')");
+        $ins->execute([$classId, $mid]);
         flash_set('success', 'A spot opened up — you have been booked!');
     } else {
-        $db->query("INSERT INTO booking (Class_id, Member_id, BookedAt, Status) VALUES ($classId, $mid, NOW(), 'waitlisted')");
+        $ins = $db->prepare("INSERT INTO booking (Class_id, Member_id, BookedAt, Status) VALUES (?, ?, NOW(), 'waitlisted')");
+        $ins->execute([$classId, $mid]);
         flash_set('success', 'Added to waitlist. You will be promoted if a spot opens.');
     }
     header('Location: my_account.php');

@@ -8,7 +8,7 @@ $staff   = require_staff(['admin', 'trainer']);
 $db      = db();
 $classId = (int)($_GET['class_id'] ?? $_POST['class_id'] ?? 0);
 
-// Get list of classes for the dropdown
+// Get list of classes for the dropdown (no user input — safe without params)
 $allClasses = $db->query("
     SELECT c.Class_id, c.Title, c.StartsAt, t.Name AS TrainerName
     FROM class c JOIN trainer t ON t.Trainer_id = c.Trainer_id
@@ -19,14 +19,15 @@ $classInfo = null;
 $bookings  = [];
 
 if ($classId) {
-    // NAIVE: direct string queries
-    $classInfo = $db->query("
+    $stmt = $db->prepare("
         SELECT c.*, t.Name AS TrainerName
         FROM class c JOIN trainer t ON t.Trainer_id = c.Trainer_id
-        WHERE c.Class_id = $classId
-    ")->fetch();
+        WHERE c.Class_id = ?
+    ");
+    $stmt->execute([$classId]);
+    $classInfo = $stmt->fetch();
 
-    $bookings = $db->query("
+    $stmt = $db->prepare("
         SELECT b.Booking_id, b.Member_id, b.Status,
                m.Name AS MemberName, m.Email,
                a.CheckedInAt
@@ -34,9 +35,11 @@ if ($classId) {
         JOIN member m ON m.Member_id = b.Member_id
         LEFT JOIN attendance a
             ON a.Class_id = b.Class_id AND a.Member_id = b.Member_id
-        WHERE b.Class_id = $classId AND b.Status = 'booked'
+        WHERE b.Class_id = ? AND b.Status = 'booked'
         ORDER BY m.Name ASC
-    ")->fetchAll();
+    ");
+    $stmt->execute([$classId]);
+    $bookings = $stmt->fetchAll();
 }
 
 // Handle check-in POST
@@ -44,9 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkin_member_id']))
     $checkMid = (int)$_POST['checkin_member_id'];
     $cid      = (int)$_POST['class_id'];
 
-    // NAIVE: direct string insert/ignore
-    $db->query("INSERT IGNORE INTO attendance (Class_id, Member_id, CheckedInAt)
-                VALUES ($cid, $checkMid, NOW())");
+    $ins = $db->prepare("INSERT IGNORE INTO attendance (Class_id, Member_id, CheckedInAt) VALUES (?, ?, NOW())");
+    $ins->execute([$cid, $checkMid]);
 
     flash_set('success', 'Member checked in.');
     header("Location: attendance.php?class_id=$cid");

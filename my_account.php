@@ -8,35 +8,42 @@ $member = require_member();
 $db     = db();
 $mid    = $member['id'];
 
-// NAIVE: direct string queries
-$memberInfo = $db->query("SELECT * FROM member WHERE Member_id = $mid")->fetch();
+$stmt = $db->prepare("SELECT * FROM member WHERE Member_id = ?");
+$stmt->execute([$mid]);
+$memberInfo = $stmt->fetch();
 
-$activeMembership = $db->query("
+$stmt = $db->prepare("
     SELECT ms.*, p.Name AS PlanName, p.PriceMonthly
     FROM membership ms
     JOIN plan p ON p.Plan_id = ms.Plan_id
-    WHERE ms.Member_id = $mid AND ms.Active = 1
+    WHERE ms.Member_id = ? AND ms.Active = 1
     ORDER BY ms.EndDate DESC
     LIMIT 1
-")->fetch();
+");
+$stmt->execute([$mid]);
+$activeMembership = $stmt->fetch();
 
-$bookings = $db->query("
+$stmt = $db->prepare("
     SELECT b.*, c.Title AS ClassTitle, c.StartsAt, c.Room, t.Name AS TrainerName
     FROM booking b
     JOIN class c ON c.Class_id = b.Class_id
     JOIN trainer t ON t.Trainer_id = c.Trainer_id
-    WHERE b.Member_id = $mid
+    WHERE b.Member_id = ?
     ORDER BY c.StartsAt DESC
-")->fetchAll();
+");
+$stmt->execute([$mid]);
+$bookings = $stmt->fetchAll();
 
-$payments = $db->query("
+$stmt = $db->prepare("
     SELECT pay.*, p.Name AS PlanName
     FROM payment pay
     JOIN membership ms ON ms.Membership_id = pay.Membership_id
     JOIN plan p ON p.Plan_id = ms.Plan_id
-    WHERE pay.Member_id = $mid
+    WHERE pay.Member_id = ?
     ORDER BY pay.PaidAt DESC
-")->fetchAll();
+");
+$stmt->execute([$mid]);
+$payments = $stmt->fetchAll();
 
 page_head('My Account');
 page_nav();

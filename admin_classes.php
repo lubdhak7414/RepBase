@@ -9,14 +9,13 @@ $db    = db();
 
 // Handle add class
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_class'])) {
-    $title     = $_POST['title'];
-    $trainer   = $_POST['trainer_id'];
-    $starts    = $_POST['starts_at'];
-    $capacity  = (int)$_POST['capacity'];
-    $room      = $_POST['room'];
-    // NAIVE: direct string interpolation
-    $db->query("INSERT INTO class (Title, Trainer_id, StartsAt, Capacity, Room)
-                VALUES ('$title', $trainer, '$starts', $capacity, '$room')");
+    $title    = $_POST['title'];
+    $trainer  = (int)$_POST['trainer_id'];
+    $starts   = $_POST['starts_at'];
+    $capacity = (int)$_POST['capacity'];
+    $room     = $_POST['room'];
+    $stmt = $db->prepare("INSERT INTO class (Title, Trainer_id, StartsAt, Capacity, Room) VALUES (?, ?, ?, ?, ?)");
+    $stmt->execute([$title, $trainer, $starts, $capacity, $room]);
     flash_set('success', 'Class added successfully.');
     header('Location: admin_classes.php');
     exit;
@@ -24,15 +23,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_class'])) {
 
 // Handle edit class
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_class'])) {
-    $id       = $_POST['class_id'];
+    $id       = (int)$_POST['class_id'];
     $title    = $_POST['title'];
-    $trainer  = $_POST['trainer_id'];
+    $trainer  = (int)$_POST['trainer_id'];
     $starts   = $_POST['starts_at'];
     $capacity = (int)$_POST['capacity'];
     $room     = $_POST['room'];
-    // NAIVE: direct string interpolation
-    $db->query("UPDATE class SET Title = '$title', Trainer_id = $trainer, StartsAt = '$starts',
-                Capacity = $capacity, Room = '$room' WHERE Class_id = $id");
+    $stmt = $db->prepare("UPDATE class SET Title = ?, Trainer_id = ?, StartsAt = ?, Capacity = ?, Room = ? WHERE Class_id = ?");
+    $stmt->execute([$title, $trainer, $starts, $capacity, $room, $id]);
     flash_set('success', 'Class updated.');
     header('Location: admin_classes.php');
     exit;
@@ -40,19 +38,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_class'])) {
 
 // Handle delete class
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_class'])) {
-    $id = $_POST['class_id'];
-    // NAIVE: direct string interpolation
-    $db->query("DELETE FROM class WHERE Class_id = $id");
+    $id = (int)$_POST['class_id'];
+    $stmt = $db->prepare("DELETE FROM class WHERE Class_id = ?");
+    $stmt->execute([$id]);
     flash_set('success', 'Class deleted.');
     header('Location: admin_classes.php');
     exit;
 }
 
-// Fetch trainers for select
+// Fetch trainers for select (no user input)
 $trainers = $db->query("SELECT * FROM trainer ORDER BY Name ASC")->fetchAll();
 
 // Fetch all classes with trainer name and booking count
-// NAIVE: string query
 $classes = $db->query("
     SELECT c.*, t.Name AS TrainerName,
            COUNT(b.Booking_id) AS BookedCount
@@ -66,7 +63,9 @@ $classes = $db->query("
 $editId    = (int)($_GET['edit'] ?? 0);
 $editClass = null;
 if ($editId) {
-    $editClass = $db->query("SELECT * FROM class WHERE Class_id = $editId")->fetch();
+    $stmt = $db->prepare("SELECT * FROM class WHERE Class_id = ?");
+    $stmt->execute([$editId]);
+    $editClass = $stmt->fetch();
 }
 
 page_head('Manage Classes');

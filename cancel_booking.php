@@ -14,12 +14,13 @@ if (!$bookingId) {
     exit;
 }
 
-// NAIVE: direct string query
-$booking = $db->query("
+$stmt = $db->prepare("
     SELECT b.*, c.Title AS ClassTitle, c.Class_id
     FROM booking b JOIN class c ON c.Class_id = b.Class_id
-    WHERE b.Booking_id = $bookingId AND b.Member_id = $mid
-")->fetch();
+    WHERE b.Booking_id = ? AND b.Member_id = ?
+");
+$stmt->execute([$bookingId, $mid]);
+$booking = $stmt->fetch();
 
 if (!$booking) {
     flash_set('error', 'Booking not found.');
@@ -31,20 +32,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $classId = (int)$booking['Class_id'];
 
     // Cancel the booking
-    $db->query("UPDATE booking SET Status = 'cancelled' WHERE Booking_id = $bookingId");
+    $stmt = $db->prepare("UPDATE booking SET Status = 'cancelled' WHERE Booking_id = ?");
+    $stmt->execute([$bookingId]);
 
     // Promote oldest waitlisted booking for this class if the cancelled one was 'booked'
     if ($booking['Status'] === 'booked') {
-        $waitlist = $db->query("
+        $stmt = $db->prepare("
             SELECT Booking_id FROM booking
-            WHERE Class_id = $classId AND Status = 'waitlisted'
+            WHERE Class_id = ? AND Status = 'waitlisted'
             ORDER BY BookedAt ASC
             LIMIT 1
-        ")->fetch();
+        ");
+        $stmt->execute([$classId]);
+        $waitlist = $stmt->fetch();
 
         if ($waitlist) {
             $wid = (int)$waitlist['Booking_id'];
-            $db->query("UPDATE booking SET Status = 'booked' WHERE Booking_id = $wid");
+            $upd = $db->prepare("UPDATE booking SET Status = 'booked' WHERE Booking_id = ?");
+            $upd->execute([$wid]);
         }
     }
 

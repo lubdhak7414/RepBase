@@ -8,35 +8,42 @@ $member = require_member();
 $db     = db();
 $mid    = $member['id'];
 
-// Fetch available plans using naive string query
+// Fetch available plans
 $plans = $db->query("SELECT * FROM plan ORDER BY PriceMonthly ASC")->fetchAll();
 
 // Current membership
-$current = $db->query("SELECT ms.*, p.Name AS PlanName
+$stmt = $db->prepare("SELECT ms.*, p.Name AS PlanName
     FROM membership ms JOIN plan p ON p.Plan_id = ms.Plan_id
-    WHERE ms.Member_id = $mid AND ms.Active = 1
-    ORDER BY ms.EndDate DESC LIMIT 1")->fetch();
+    WHERE ms.Member_id = ? AND ms.Active = 1
+    ORDER BY ms.EndDate DESC LIMIT 1");
+$stmt->execute([$mid]);
+$current = $stmt->fetch();
 
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $planId = (int)($_POST['plan_id'] ?? 0);
-    // NAIVE: direct interpolation
-    $plan = $db->query("SELECT * FROM plan WHERE Plan_id = $planId")->fetch();
+    $stmt = $db->prepare("SELECT * FROM plan WHERE Plan_id = ?");
+    $stmt->execute([$planId]);
+    $plan = $stmt->fetch();
     if (!$plan) {
         $error = 'Invalid plan selected.';
     } else {
         // Deactivate existing memberships
-        $db->query("UPDATE membership SET Active = 0 WHERE Member_id = $mid");
+        $upd = $db->prepare("UPDATE membership SET Active = 0 WHERE Member_id = ?");
+        $upd->execute([$mid]);
         // Create new membership
-        $db->query("INSERT INTO membership (Member_id, Plan_id, StartDate, EndDate, Active)
-            VALUES ($mid, $planId, CURDATE(), DATE_ADD(CURDATE(), INTERVAL {$plan['DurationDays']} DAY), 1)");
+        $dur = (int)$plan['DurationDays'];
+        $ins = $db->prepare("INSERT INTO membership (Member_id, Plan_id, StartDate, EndDate, Active)
+            VALUES (?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL ? DAY), 1)");
+        $ins->execute([$mid, $planId, $dur]);
         $newMsId = (int)$db->lastInsertId();
         // Record payment
         $amount = $plan['PriceMonthly'];
         $method = $_POST['method'] ?? 'card';
-        $db->query("INSERT INTO payment (Member_id, Membership_id, Amount, PaidAt, Method)
-            VALUES ($mid, $newMsId, $amount, NOW(), '$method')");
+        $pay = $db->prepare("INSERT INTO payment (Member_id, Membership_id, Amount, PaidAt, Method)
+            VALUES (?, ?, ?, NOW(), ?)");
+        $pay->execute([$mid, $newMsId, $amount, $method]);
         flash_set('success', 'Membership updated to ' . $plan['Name'] . '!');
         header('Location: my_account.php');
         exit;
