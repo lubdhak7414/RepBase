@@ -20,9 +20,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['record_payment'])) {
 
     if ($ms) {
         $membership_id = (int)$ms['Membership_id'];
-        $ins = $db->prepare("INSERT INTO payment (Member_id, Membership_id, Amount, PaidAt, Method) VALUES (?, ?, ?, NOW(), ?)");
-        $ins->execute([$member_id, $membership_id, $amount, $method]);
-        flash_set('success', 'Payment recorded successfully.');
+        try {
+            $db->beginTransaction();
+
+            $ins = $db->prepare("INSERT INTO payment (Member_id, Membership_id, Amount, PaidAt, Method) VALUES (?, ?, ?, NOW(), ?)");
+            $ins->execute([$member_id, $membership_id, $amount, $method]);
+
+            // Ensure membership is marked active
+            $upd = $db->prepare("UPDATE membership SET Active = 1 WHERE Membership_id = ?");
+            $upd->execute([$membership_id]);
+
+            $db->commit();
+            flash_set('success', 'Payment recorded successfully.');
+        } catch (\Exception $e) {
+            $db->rollBack();
+            flash_set('error', 'Payment recording failed. Please try again.');
+        }
     } else {
         flash_set('error', 'No active membership found for this member.');
     }

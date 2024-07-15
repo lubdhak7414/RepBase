@@ -44,14 +44,32 @@ $remaining = $capacity - $bookedCount;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($existing) {
         flash_set('error', 'You already have a booking for this class.');
-    } elseif ($remaining > 0) {
-        $ins = $db->prepare("INSERT INTO booking (Class_id, Member_id, BookedAt, Status) VALUES (?, ?, NOW(), 'booked')");
-        $ins->execute([$classId, $mid]);
-        flash_set('success', 'Class booked successfully!');
+    } else {
+        try {
+            $db->beginTransaction();
+
+            // Re-check capacity inside transaction
+            $stmt = $db->prepare("SELECT COUNT(*) FROM booking WHERE Class_id = ? AND Status = 'booked'");
+            $stmt->execute([$classId]);
+            $currentCount = (int)$stmt->fetchColumn();
+
+            if ($currentCount < $capacity) {
+                $ins = $db->prepare("INSERT INTO booking (Class_id, Member_id, BookedAt, Status) VALUES (?, ?, NOW(), 'booked')");
+                $ins->execute([$classId, $mid]);
+                $db->commit();
+                flash_set('success', 'Class booked successfully!');
+            } else {
+                $ins = $db->prepare("INSERT INTO booking (Class_id, Member_id, BookedAt, Status) VALUES (?, ?, NOW(), 'waitlisted')");
+                $ins->execute([$classId, $mid]);
+                $db->commit();
+                flash_set('success', 'Class is full — added to waitlist.');
+            }
+        } catch (\Exception $e) {
+            $db->rollBack();
+            flash_set('error', 'Booking failed. Please try again.');
+        }
         header('Location: my_account.php');
         exit;
-    } else {
-        flash_set('error', 'No spots left. Use the waitlist option.');
     }
     header('Location: book_class.php?id=' . $classId);
     exit;
@@ -84,8 +102,11 @@ page_nav();
       <a href="index.php" class="btn btn-outline-secondary ms-2">Cancel</a>
     </form>
   <?php else: ?>
-    <a href="waitlist.php?id=<?= $classId ?>" class="btn btn-warning">Join Waitlist</a>
-    <a href="index.php" class="btn btn-outline-secondary ms-2">Back</a>
+    <p class="text-muted">This class is currently full.</p>
+    <form method="post">
+      <button type="submit" class="btn btn-warning">Join Waitlist</button>
+      <a href="index.php" class="btn btn-outline-secondary ms-2">Back</a>
+    </form>
   <?php endif; ?>
 </div>
 <?php page_foot(); ?>

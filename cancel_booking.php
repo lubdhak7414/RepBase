@@ -31,29 +31,38 @@ if (!$booking) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $classId = (int)$booking['Class_id'];
 
-    // Cancel the booking
-    $stmt = $db->prepare("UPDATE booking SET Status = 'cancelled' WHERE Booking_id = ?");
-    $stmt->execute([$bookingId]);
+    try {
+        $db->beginTransaction();
 
-    // Promote oldest waitlisted booking for this class if the cancelled one was 'booked'
-    if ($booking['Status'] === 'booked') {
-        $stmt = $db->prepare("
-            SELECT Booking_id FROM booking
-            WHERE Class_id = ? AND Status = 'waitlisted'
-            ORDER BY BookedAt ASC
-            LIMIT 1
-        ");
-        $stmt->execute([$classId]);
-        $waitlist = $stmt->fetch();
+        // Cancel the booking
+        $stmt = $db->prepare("UPDATE booking SET Status = 'cancelled' WHERE Booking_id = ?");
+        $stmt->execute([$bookingId]);
 
-        if ($waitlist) {
-            $wid = (int)$waitlist['Booking_id'];
-            $upd = $db->prepare("UPDATE booking SET Status = 'booked' WHERE Booking_id = ?");
-            $upd->execute([$wid]);
+        // Promote oldest waitlisted booking for this class if the cancelled one was 'booked'
+        if ($booking['Status'] === 'booked') {
+            $stmt = $db->prepare("
+                SELECT Booking_id FROM booking
+                WHERE Class_id = ? AND Status = 'waitlisted'
+                ORDER BY BookedAt ASC
+                LIMIT 1
+            ");
+            $stmt->execute([$classId]);
+            $waitlist = $stmt->fetch();
+
+            if ($waitlist) {
+                $wid = (int)$waitlist['Booking_id'];
+                $upd = $db->prepare("UPDATE booking SET Status = 'booked' WHERE Booking_id = ?");
+                $upd->execute([$wid]);
+            }
         }
+
+        $db->commit();
+        flash_set('success', 'Booking for "' . $booking['ClassTitle'] . '" has been cancelled.');
+    } catch (\Exception $e) {
+        $db->rollBack();
+        flash_set('error', 'Cancellation failed. Please try again.');
     }
 
-    flash_set('success', 'Booking for "' . $booking['ClassTitle'] . '" has been cancelled.');
     header('Location: my_account.php');
     exit;
 }
