@@ -31,16 +31,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_member'])) {
     exit;
 }
 
-// Fetch all members with their active membership plan
-$members = $db->query("
-    SELECT m.Member_id, m.Name, m.Email, m.Phone, m.JoinDate,
-           ms.Membership_id, ms.Active AS MsActive, ms.EndDate,
-           p.Name AS PlanName
-    FROM member m
-    LEFT JOIN membership ms ON ms.Member_id = m.Member_id AND ms.Active = 1
-    LEFT JOIN plan p ON p.Plan_id = ms.Plan_id
-    ORDER BY m.Member_id ASC
-")->fetchAll();
+// Optional name/email search
+$search = trim($_GET['search'] ?? '');
+
+if ($search !== '') {
+    $like  = '%' . $search . '%';
+    $stmt  = $db->prepare("
+        SELECT m.Member_id, m.Name, m.Email, m.Phone, m.JoinDate,
+               ms.Membership_id, ms.Active AS MsActive, ms.EndDate,
+               p.Name AS PlanName
+        FROM member m
+        LEFT JOIN membership ms ON ms.Member_id = m.Member_id AND ms.Active = 1
+        LEFT JOIN plan p ON p.Plan_id = ms.Plan_id
+        WHERE m.Name LIKE ? OR m.Email LIKE ?
+        ORDER BY m.Member_id ASC
+    ");
+    $stmt->execute([$like, $like]);
+} else {
+    $stmt = $db->query("
+        SELECT m.Member_id, m.Name, m.Email, m.Phone, m.JoinDate,
+               ms.Membership_id, ms.Active AS MsActive, ms.EndDate,
+               p.Name AS PlanName
+        FROM member m
+        LEFT JOIN membership ms ON ms.Member_id = m.Member_id AND ms.Active = 1
+        LEFT JOIN plan p ON p.Plan_id = ms.Plan_id
+        ORDER BY m.Member_id ASC
+    ");
+}
+$members = $stmt->fetchAll();
 
 // Edit form target
 $editId = (int)($_GET['edit'] ?? 0);
@@ -57,9 +75,22 @@ page_nav();
 <div class="container">
   <?php flash_html(); ?>
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Manage Members</h2>
+    <h2>Manage Members <span class="text-muted fs-6">(<?= count($members) ?>)</span></h2>
     <a href="staff_dashboard.php" class="btn btn-outline-secondary btn-sm">Dashboard</a>
   </div>
+
+  <form method="get" class="row g-2 mb-4">
+    <div class="col-auto">
+      <input type="text" name="search" class="form-control form-control-sm"
+             placeholder="Search by name or email…" value="<?= e($search) ?>">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+      <?php if ($search): ?>
+      <a href="admin_members.php" class="btn btn-outline-secondary btn-sm">Clear</a>
+      <?php endif; ?>
+    </div>
+  </form>
 
   <?php if ($editMember): ?>
   <div class="card shadow-sm mb-4" style="max-width:500px">
