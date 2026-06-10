@@ -15,7 +15,7 @@ if (!$bookingId) {
 }
 
 $stmt = $db->prepare("
-    SELECT b.*, c.Title AS ClassTitle, c.Class_id
+    SELECT b.*, c.Title AS ClassTitle, c.Class_id, c.StartsAt, c.Room
     FROM booking b JOIN class c ON c.Class_id = b.Class_id
     WHERE b.Booking_id = ? AND b.Member_id = ?
 ");
@@ -77,7 +77,13 @@ page_nav();
     <div class="card-body">
       <p>Are you sure you want to cancel your booking for:</p>
       <p class="fw-bold fs-5"><?= e($booking['ClassTitle']) ?></p>
-      <p class="text-muted">Status: <?= e($booking['Status']) ?></p>
+      <p class="text-muted mb-1">
+        📅 <?= date('D, M j Y \a\t g:i A', strtotime($booking['StartsAt'])) ?>
+      </p>
+      <?php if ($booking['Room']): ?>
+      <p class="text-muted mb-1">📍 <?= e($booking['Room']) ?></p>
+      <?php endif; ?>
+      <p class="text-muted mt-2">Booking status: <strong><?= e($booking['Status']) ?></strong></p>
     </div>
   </div>
   <form method="post">
