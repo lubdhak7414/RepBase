@@ -6,7 +6,7 @@ require_once __DIR__ . '/helpers.php';
 
 session_start_safe();
 
-// Fetch upcoming classes with trainer name and booked count
+// Fetch upcoming classes with trainer name, booked count, and past-attendance avg
 $sql = "
     SELECT
         c.Class_id,
@@ -16,7 +16,8 @@ $sql = "
         c.Room,
         t.Name  AS TrainerName,
         t.Specialty,
-        COUNT(b.Booking_id) AS BookedCount
+        COUNT(DISTINCT b.Booking_id) AS BookedCount,
+        (SELECT COUNT(*) FROM attendance a WHERE a.Class_id = c.Class_id) AS AttendanceCount
     FROM class c
     JOIN trainer t ON t.Trainer_id = c.Trainer_id
     LEFT JOIN booking b
@@ -59,6 +60,9 @@ page_nav();
           <p class="mb-1"><i class="text-muted">🏅</i> <?= e($cl['TrainerName']) ?></p>
           <p class="mb-1"><i class="text-muted">📍</i> <?= e($cl['Room']) ?></p>
           <p class="mb-0 text-muted small"><?= e($cl['Specialty']) ?></p>
+          <?php if ((int)$cl['AttendanceCount'] > 0): ?>
+          <p class="mb-0 text-muted small mt-1">✅ <?= (int)$cl['AttendanceCount'] ?> checked in</p>
+          <?php endif; ?>
         </div>
         <div class="card-footer">
           <?php if (!empty($_SESSION['member_id'])): ?>
