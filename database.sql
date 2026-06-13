@@ -2,6 +2,8 @@
 -- MySQL 8.0 / MariaDB 10.11
 
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS class_rating;
+DROP TABLE IF EXISTS membership_freeze;
 DROP TABLE IF EXISTS attendance;
 DROP TABLE IF EXISTS payment;
 DROP TABLE IF EXISTS booking;
@@ -198,6 +200,36 @@ INSERT INTO attendance (Class_id, Member_id, CheckedInAt) VALUES
     (3, 2, '2024-05-06 18:01:00'),
     (4, 1, '2024-05-07 09:03:00');
 
+-- -------------------------------------------------------
+-- Feature tables
+-- -------------------------------------------------------
+
+CREATE TABLE class_rating (
+    Rating_id  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    Class_id   INT UNSIGNED NOT NULL,
+    Member_id  INT UNSIGNED NOT NULL,
+    Stars      TINYINT UNSIGNED NOT NULL,
+    Comment    TEXT,
+    CreatedAt  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_cr_class   FOREIGN KEY (Class_id)  REFERENCES class  (Class_id)  ON DELETE CASCADE,
+    CONSTRAINT fk_cr_member  FOREIGN KEY (Member_id) REFERENCES member (Member_id) ON DELETE CASCADE,
+    CONSTRAINT uq_member_class_rating UNIQUE (Class_id, Member_id),
+    CONSTRAINT chk_stars CHECK (Stars BETWEEN 1 AND 5)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE membership_freeze (
+    Freeze_id    INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    Membership_id INT UNSIGNED NOT NULL,
+    RequestedBy  INT UNSIGNED NOT NULL,
+    Status       ENUM('pending','active','completed','rejected') NOT NULL DEFAULT 'pending',
+    RequestedAt  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FrozenAt     DATE NULL,
+    UnfrozenAt   DATE NULL,
+    DaysExtended INT UNSIGNED NULL,
+    CONSTRAINT fk_mf_membership FOREIGN KEY (Membership_id) REFERENCES membership (Membership_id) ON DELETE CASCADE,
+    CONSTRAINT fk_mf_member     FOREIGN KEY (RequestedBy)   REFERENCES member     (Member_id)     ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Payments
 INSERT INTO payment (Member_id, Membership_id, Amount, PaidAt, Method) VALUES
     (1, 1, 54.99, '2024-02-10 10:00:00', 'card'),
@@ -209,3 +241,10 @@ INSERT INTO payment (Member_id, Membership_id, Amount, PaidAt, Method) VALUES
     (3, 7, 34.99, '2024-04-01 14:00:00', 'card'),
     (4, 8, 359.88, '2024-03-10 09:00:00', 'card'),
     (5, 9, 19.99, '2024-04-01 16:00:00', 'cash');
+
+-- Class ratings (seeded against attendance records above)
+-- Member 1 attended class 1, 2, 4; Member 2 attended 1, 3; Member 4 attended class 2
+INSERT INTO class_rating (Class_id, Member_id, Stars, Comment, CreatedAt) VALUES
+    (1, 1, 5, 'Excellent session, Marcus really pushed us hard!', '2024-05-06 09:00:00'),
+    (1, 2, 4, 'Great class, good energy in the room.', '2024-05-06 09:30:00'),
+    (2, 1, 4, 'Fast-paced HIIT, loved it.', '2024-05-06 14:00:00');
