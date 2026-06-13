@@ -49,13 +49,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_class'])) {
 // Fetch trainers for select (no user input)
 $trainers = $db->query("SELECT * FROM trainer ORDER BY Name ASC")->fetchAll();
 
-// Fetch all classes with trainer name and booking count
+// Fetch all classes with trainer name, booking count and avg rating
 $classes = $db->query("
     SELECT c.*, t.Name AS TrainerName,
-           COUNT(b.Booking_id) AS BookedCount
+           COUNT(DISTINCT b.Booking_id) AS BookedCount,
+           ROUND(AVG(cr.Stars), 1) AS AvgRating,
+           COUNT(DISTINCT cr.Rating_id) AS RatingCount
     FROM class c
     JOIN trainer t ON t.Trainer_id = c.Trainer_id
     LEFT JOIN booking b ON b.Class_id = c.Class_id AND b.Status = 'booked'
+    LEFT JOIN class_rating cr ON cr.Class_id = c.Class_id
     GROUP BY c.Class_id
     ORDER BY c.StartsAt DESC
 ")->fetchAll();
@@ -146,6 +149,7 @@ page_nav();
           <th>Room</th>
           <th>Capacity</th>
           <th>Booked</th>
+          <th>Rating</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -158,6 +162,14 @@ page_nav();
           <td><?= e($cl['Room']) ?></td>
           <td><?= (int)$cl['Capacity'] ?></td>
           <td><?= (int)$cl['BookedCount'] ?></td>
+          <td>
+            <?php if ($cl['RatingCount'] > 0): ?>
+              <?= e((string)$cl['AvgRating']) ?> / 5
+              <small class="text-muted">(<?= (int)$cl['RatingCount'] ?>)</small>
+            <?php else: ?>
+              <span class="text-muted">—</span>
+            <?php endif; ?>
+          </td>
           <td class="d-flex gap-1 flex-wrap">
             <a href="admin_classes.php?edit=<?= (int)$cl['Class_id'] ?>"
                class="btn btn-sm btn-outline-primary">Edit</a>

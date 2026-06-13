@@ -24,10 +24,14 @@ $stmt->execute([$mid]);
 $activeMembership = $stmt->fetch();
 
 $stmt = $db->prepare("
-    SELECT b.*, c.Title AS ClassTitle, c.StartsAt, c.Room, t.Name AS TrainerName
+    SELECT b.*, c.Title AS ClassTitle, c.StartsAt, c.Room, t.Name AS TrainerName,
+           a.CheckedInAt,
+           cr.Rating_id AS RatingId, cr.Stars AS RatingStars
     FROM booking b
     JOIN class c ON c.Class_id = b.Class_id
     JOIN trainer t ON t.Trainer_id = c.Trainer_id
+    LEFT JOIN attendance a ON a.Class_id = b.Class_id AND a.Member_id = b.Member_id
+    LEFT JOIN class_rating cr ON cr.Class_id = b.Class_id AND cr.Member_id = b.Member_id
     WHERE b.Member_id = ?
     ORDER BY c.StartsAt DESC
 ");
@@ -81,6 +85,11 @@ page_nav();
           <a href="membership.php" class="btn btn-sm btn-outline-primary mt-2">
             <?= $activeMembership ? 'Change Plan' : 'Get a Membership' ?>
           </a>
+          <?php if ($activeMembership): ?>
+          <a href="freeze_membership.php" class="btn btn-sm btn-outline-secondary mt-2">
+            Pause Membership
+          </a>
+          <?php endif; ?>
         </div>
       </div>
     </div>
@@ -100,7 +109,7 @@ page_nav();
             <table class="table table-hover mb-0">
               <thead class="table-light">
                 <tr>
-                  <th>Class</th><th>Date</th><th>Room</th><th>Trainer</th><th>Status</th><th></th>
+                  <th>Class</th><th>Date</th><th>Room</th><th>Trainer</th><th>Status</th><th>Rating</th><th></th>
                 </tr>
               </thead>
               <tbody>
@@ -111,6 +120,8 @@ page_nav();
                         'cancelled'  => 'bg-secondary',
                         default      => 'bg-light text-dark',
                     };
+                    $isPast    = strtotime($bk['StartsAt']) < time();
+                    $attended  = !empty($bk['CheckedInAt']);
                 ?>
                 <tr>
                   <td><?= e($bk['ClassTitle']) ?></td>
@@ -118,6 +129,22 @@ page_nav();
                   <td><?= e($bk['Room']) ?></td>
                   <td><?= e($bk['TrainerName']) ?></td>
                   <td><span class="badge <?= $statusCls ?>"><?= e($bk['Status']) ?></span></td>
+                  <td>
+                    <?php if ($isPast && $attended): ?>
+                      <?php if ($bk['RatingId']): ?>
+                        <span class="badge bg-warning text-dark">
+                          <?= (int)$bk['RatingStars'] ?> / 5
+                        </span>
+                        <a href="rate_class.php?class_id=<?= (int)$bk['Class_id'] ?>"
+                           class="btn btn-sm btn-link p-0 ms-1">Edit</a>
+                      <?php else: ?>
+                        <a href="rate_class.php?class_id=<?= (int)$bk['Class_id'] ?>"
+                           class="btn btn-sm btn-outline-warning">Rate</a>
+                      <?php endif; ?>
+                    <?php else: ?>
+                      <span class="text-muted">—</span>
+                    <?php endif; ?>
+                  </td>
                   <td>
                     <?php if ($bk['Status'] !== 'cancelled'): ?>
                     <a href="cancel_booking.php?id=<?= (int)$bk['Booking_id'] ?>"
