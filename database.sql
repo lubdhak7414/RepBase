@@ -99,6 +99,15 @@ CREATE TABLE staff (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------------------------------
+-- Performance indexes
+-- -------------------------------------------------------
+CREATE INDEX idx_booking_member  ON booking  (Member_id);
+CREATE INDEX idx_booking_status  ON booking  (Status);
+CREATE INDEX idx_membership_member ON membership (Member_id);
+CREATE INDEX idx_payment_member  ON payment  (Member_id);
+CREATE INDEX idx_class_starts_at ON class    (StartsAt);
+
+-- -------------------------------------------------------
 -- Seed data
 -- -------------------------------------------------------
 
