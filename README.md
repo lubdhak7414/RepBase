@@ -1,38 +1,41 @@
 # RepBase
 
-Gym membership, class-booking, and attendance management system built with PHP 8.2 and MySQL.
+Gym management system — members, class bookings, waitlists, attendance, and payments. PHP + MySQL, no framework.
 
-## Features
+The booking/waitlist flow is transaction-heavy: booking a full class puts you on the waitlist, and cancelling a spot auto-promotes the next person in line.
 
-- Member registration, login, and membership tracking
-- Class schedule with capacity limits and automatic waitlist promotion
-- Trainer roster and attendance check-in
-- Admin panel: member management, payments, expiring memberships, revenue reports
+## Roles
 
-## Prerequisites
-
-- PHP 8.2+
-- MySQL 8.0 / MariaDB 10.11+
-- Web server or `php -S localhost:8080`
+- **Member** — view schedule, book/cancel classes, see membership status and payment history
+- **Trainer** — view their own class roster, mark attendance
+- **Admin** — everything: manage members, record payments, view expiring memberships, revenue by plan
 
 ## Setup
 
-1. `CREATE DATABASE repbase;`
-2. `mysql -u root repbase < database.sql`
-3. Edit `config.php` with your DB credentials
-4. `php -S localhost:8080`
+You need PHP 8.2+ and MySQL 8.0 / MariaDB 10.11+.
 
-## Demo accounts
+```bash
+mysql -u root -p -e "CREATE DATABASE repbase;"
+mysql -u root -p repbase < database.sql
+```
 
-| Role    | Credential               | Password   |
-|---------|--------------------------|------------|
-| Member  | alice@example.com (email) | member123 |
-| Admin   | admin (username)          | admin123  |
-| Trainer | marcus.webb (username)    | trainer123 |
+Edit `config.php`, then start the server:
 
-## Sample queries
+```bash
+php -S localhost:8080
+```
 
-### Remaining seats in a class
+## Accounts
+
+| Role | Login | Password |
+|------|-------|----------|
+| Member | alice@gym.local (email field) | member123 |
+| Admin | admin | admin123 |
+| Trainer | marcus.webb | trainer123 |
+
+## Queries
+
+Available spots per class:
 ```sql
 SELECT c.Title, c.Capacity - COUNT(b.Booking_id) AS seats_left
 FROM class c
@@ -40,7 +43,7 @@ LEFT JOIN booking b ON b.Class_id = c.Class_id AND b.Status = 'booked'
 GROUP BY c.Class_id;
 ```
 
-### Expiring memberships (next 7 days)
+Members whose memberships expire in the next week:
 ```sql
 SELECT m.Name, m.Email, ms.EndDate
 FROM membership ms
@@ -49,7 +52,7 @@ WHERE ms.EndDate BETWEEN CURDATE() AND CURDATE() + INTERVAL 7 DAY
   AND ms.Active = 1;
 ```
 
-### Revenue per plan
+Revenue by plan:
 ```sql
 SELECT p.Name, SUM(pay.Amount) AS total_revenue
 FROM payment pay
