@@ -68,6 +68,7 @@ page_nav();
           <a href="admin_classes.php" class="list-group-item list-group-item-action">Manage Classes</a>
           <a href="admin_payments.php" class="list-group-item list-group-item-action">Payments &amp; Invoices</a>
           <a href="admin_expiring.php" class="list-group-item list-group-item-action">Expiring Memberships &amp; Reports</a>
+          <a href="revenue.php" class="list-group-item list-group-item-action">Revenue Dashboard</a>
         </div>
       </div>
     </div>

@@ -129,6 +129,7 @@ function page_nav(bool $staffMode = false): void
         echo '            <li><a class="dropdown-item" href="admin_classes.php">Classes</a></li>' . "\n";
         echo '            <li><a class="dropdown-item" href="admin_payments.php">Payments</a></li>' . "\n";
         echo '            <li><a class="dropdown-item" href="admin_expiring.php">Expiring Memberships</a></li>' . "\n";
+        echo '            <li><a class="dropdown-item" href="revenue.php">Revenue Dashboard</a></li>' . "\n";
         echo '          </ul>' . "\n";
         echo '        </li>' . "\n";
     }
