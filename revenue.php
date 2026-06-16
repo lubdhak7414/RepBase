@@ -7,13 +7,15 @@ require_once __DIR__ . '/helpers.php';
 $staff = require_staff('admin');
 $db    = db();
 
-// 1. Monthly revenue
+// 1. Monthly revenue (with new membership count)
 $monthlyRevenue = $db->query("
     SELECT YEAR(p.PaidAt) AS yr, MONTH(p.PaidAt) AS mo,
            DATE_FORMAT(p.PaidAt, '%M %Y') AS month_label,
            COUNT(DISTINCT p.Payment_id) AS payment_count,
-           SUM(p.Amount) AS total
+           SUM(p.Amount) AS total,
+           COUNT(DISTINCT ms.Membership_id) AS new_memberships
     FROM payment p
+    JOIN membership ms ON ms.Membership_id = p.Membership_id
     GROUP BY yr, mo
     ORDER BY yr DESC, mo DESC
 ")->fetchAll();
@@ -140,6 +142,7 @@ page_nav();
                 <tr>
                   <th>Month</th>
                   <th class="text-end">Payments</th>
+                  <th class="text-end">New Memberships</th>
                   <th class="text-end">Revenue</th>
                 </tr>
               </thead>
@@ -148,6 +151,7 @@ page_nav();
                 <tr>
                   <td><?= e($row['month_label']) ?></td>
                   <td class="text-end"><?= (int)$row['payment_count'] ?></td>
+                  <td class="text-end"><?= (int)$row['new_memberships'] ?></td>
                   <td class="text-end fw-semibold">$<?= number_format((float)$row['total'], 2) ?></td>
                 </tr>
                 <?php endforeach; ?>
