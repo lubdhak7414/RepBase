@@ -62,6 +62,18 @@ GROUP BY p.Plan_id
 ORDER BY total_revenue DESC;
 ```
 
+## Docker
+
+```bash
+docker compose up --build
+```
+
+App runs at http://localhost:8080. The database imports automatically on first start. Demo credentials are the same as above.
+
+```bash
+docker compose down -v
+```
+
 ## License
 
 MIT
